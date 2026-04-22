@@ -1,0 +1,50 @@
+aplicacion:
+  titulo: 'Asistente de voz basado en datos'
+  host: '127.0.0.1'
+  port: 7860
+  share: false
+  debug: false
+
+rutas:
+  directorio_datos: 'data'
+  directorio_modelo: 'models/llm'
+  directorio_asr: 'models/asr'
+  directorio_tts: 'models/tts'
+  directorio_temporal: 'temp'
+  directorio_logs: 'logs'
+
+modelo:
+  modo: 'servidor_local'
+  ruta_modelo: 'models/llm/model.gguf'
+  contexto: 2048
+  hilos: 6
+  lote: 256
+  temperatura: 0.1
+  maximo_tokens: 140
+  top_p: 0.9
+  penalizacion_repeticion: 1.08
+  url_servidor: 'http://127.0.0.1:8080/v1/chat/completions'
+  nombre_modelo_servidor: 'modelo-local'
+  timeout_segundos: 300
+
+audio:
+  habilitar_asr: true
+  habilitar_tts: true
+  modelo_asr: 'tiny'
+  dispositivo_asr: 'cpu'
+  tipo_calculo_asr: 'int8'
+  idioma_asr: 'es'
+  ruta_voz_tts: 'models/tts/es_MX-claude-high.onnx'
+  ruta_configuracion_voz_tts: 'models/tts/es_MX-claude-high.onnx.json'
+  hablante_tts: 0
+  escala_longitud_tts: 0.84
+  escala_ruido_tts: 0.35
+  escala_ruido_w_tts: 0.45
+
+negocio:
+  maximo_archivos: 1
+  maximo_filas_vista: 12
+  umbral_z: 1.5
+
+interfaz:
+  estado_inicial: 'Carga un CSV, procésalo y pregúntame por voz.'
