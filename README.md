@@ -137,3 +137,234 @@ fix_voice/
 ├─ tests/
 ├─ requirements.txt
 └─ requirements-llama-cpp.txt
+```
+
+## Responsabilidades por módulo
+
+- `src/ui`: interfaz y eventos de Gradio
+- `src/audio`: reconocimiento y síntesis de voz
+- `src/data`: carga, limpieza, mapeo y construcción del contexto tabular
+- `src/llm`: prompts, cliente del modelo local y parseo de respuestas
+- `src/orchestration`: sesión, historial y flujo conversacional
+- `src/utils`: utilidades de soporte y logging
+
+## Dependencias principales
+
+- Python 3.11
+- Gradio
+- pandas
+- numpy
+- Faster-Whisper
+- Piper TTS
+- llama-cpp-python
+- requests
+- PyYAML
+
+## Requisitos de ejecución
+
+Para el funcionamiento completo necesitas lo siguiente.
+
+### 1. Un modelo GGUF para el LLM
+
+Colócalo en:
+
+```text
+models/llm/model.gguf
+```
+
+### 2. Una voz Piper válida
+
+Coloca los archivos de voz en:
+
+```text
+models/tts/
+```
+
+Ejemplo:
+
+```text
+models/tts/es_MX-claude-high.onnx
+models/tts/es_MX-claude-high.onnx.json
+```
+
+### 3. Un entorno virtual de Python
+
+Se recomienda ejecutar el proyecto dentro de un entorno aislado.
+
+## Instalación
+
+### 1. Crear y activar el entorno virtual
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+### 2. Actualizar herramientas base
+
+```powershell
+python -m pip install --upgrade pip setuptools wheel
+```
+
+### 3. Instalar dependencias principales
+
+```powershell
+pip install -r requirements.txt
+```
+
+### 4. Instalar el backend opcional para `llama.cpp`
+
+Opción simple:
+
+```powershell
+pip install "llama-cpp-python[server]"
+```
+
+O, si el proyecto ya separa este backend en archivo propio:
+
+```powershell
+pip install -r requirements-llama-cpp.txt
+```
+
+## Configuración
+
+La configuración principal se encuentra en:
+
+```text
+config/settings.yaml
+```
+
+Entre los parámetros relevantes se incluyen:
+
+- modo de ejecución del LLM
+- URL del servidor local
+- tamaño del modelo ASR
+- rutas de la voz Piper
+- límites de generación
+- parámetros de UI y audio
+
+Ejemplo:
+
+```yaml
+ruta_voz_tts: 'models/tts/es_MX-claude-high.onnx'
+ruta_configuracion_voz_tts: 'models/tts/es_MX-claude-high.onnx.json'
+modelo_asr: 'tiny'
+```
+
+## Arranque recomendado con servidor local
+
+### 1. Inicia el servidor del LLM
+
+En una terminal, con el entorno activado:
+
+```powershell
+python -m llama_cpp.server --model .\models\llm\model.gguf --host 127.0.0.1 --port 8080 --n_ctx 1024 --n_threads 4 --n_threads_batch 4
+```
+
+### 2. Inicia la aplicación web
+
+En otra terminal, también con el entorno activado:
+
+```powershell
+python app.py
+```
+
+### 3. Abre la interfaz
+
+```text
+http://127.0.0.1:7860
+```
+
+## Cómo cargar un CSV y usar la app
+
+1. abre la interfaz web en el navegador  
+2. en el panel principal, carga un archivo CSV desde tu equipo  
+3. espera a que el sistema procese el archivo  
+4. revisa el diagnóstico inicial generado a partir de los datos  
+5. escribe una pregunta o grábala por voz  
+6. recibe la respuesta en texto  
+7. reproduce el audio de la respuesta si la voz Piper está configurada  
+8. continúa la conversación sobre el mismo archivo  
+9. genera un resumen final orientado a decisión cuando termines
+
+Para probar rápidamente, puedes usar cualquiera de los archivos de `examples/`.
+
+## Flujo técnico de extremo a extremo
+
+1. el usuario carga un CSV
+2. Python lo lee con `pandas`
+3. se detectan y normalizan columnas relevantes
+4. si el archivo es granular, se agregan registros y se recompone una vista analítica
+5. se calculan métricas, variaciones y señales relevantes
+6. la pregunta entra por texto o por ASR
+7. se construye un prompt con contexto de negocio e historial reciente
+8. el prompt se envía al LLM local
+9. la respuesta se transforma a una estructura uniforme
+10. el texto se muestra en la UI
+11. el mismo texto puede sintetizarse a audio con Piper
+12. la interfaz reproduce el audio resultante
+
+## Archivos de ejemplo
+
+La carpeta `examples/` incluye archivos listos para validar la app:
+
+- `estado_resultados_demo.csv`
+- `comida_mensual_realista.csv`
+- `comida_operacion_compleja.csv`
+
+Estos ejemplos permiten probar tanto un flujo mensual simple como uno operativo más rico.
+
+## Pruebas y validación
+
+### Tests
+
+```powershell
+python -m unittest
+```
+
+### Smoke test
+
+```powershell
+python scripts\smoke_test.py
+```
+
+## Notas importantes
+
+- si no hay un servidor LLM encendido y el modo configurado lo requiere, la app puede abrir, pero fallará al intentar responder
+- el CSV mensual y el CSV complejo vienen en `examples/`
+- la salida de voz depende de que exista una voz Piper válida en `models/tts/`
+
+## Consideraciones de rendimiento
+
+En CPU, la latencia total depende principalmente de tres etapas:
+
+- transcripción de voz
+- generación del LLM local
+- síntesis de voz
+
+Para hardware modesto conviene:
+
+- usar un modelo ASR pequeño como `tiny`
+- limitar contexto y longitud de salida del LLM
+- mantener respuestas breves
+- precargar modelos si se busca una experiencia más estable
+
+## Limitaciones conocidas
+
+- depende de la calidad estructural del CSV cargado
+- no reemplaza análisis causal formal ni modelado estadístico profundo
+- la latencia del modelo local puede ser perceptible en CPU
+- la precisión de la transcripción depende del micrófono y del entorno acústico
+- la calidad final de voz depende de la voz Piper instalada
+
+## Casos de uso recomendados
+
+- revisión rápida de resultados mensuales
+- análisis operativo de sucursales o canales
+- diagnóstico inicial de deterioro en ingresos o márgenes
+- discusión ejecutiva apoyada en datos exportados a CSV
+- prototipado de asistentes locales para análisis de negocio
+
+## Resultado esperado
+
+El resultado esperado es una herramienta local que permite pasar de un archivo CSV a una conversación analítica guiada por texto o voz, con respuestas comprensibles, contexto de negocio y apoyo concreto para la toma de decisiones.
